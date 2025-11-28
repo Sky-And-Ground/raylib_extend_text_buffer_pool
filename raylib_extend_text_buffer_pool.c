@@ -17,6 +17,8 @@ static int text_data_init(struct TextBufferPool* pool, struct TextData* data, co
     codepoints = LoadCodepoints(text, &codepointsCount);
     data->font = LoadFontFromMemory(".ttf", pool->fontFileData, pool->fileDataSize, fontSize, codepoints, codepointsCount);
     UnloadCodepoints(codepoints);
+
+    data->fontSize = fontSize;
     return 1;
 }
 
