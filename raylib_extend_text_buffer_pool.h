@@ -9,7 +9,7 @@
 #include <raylib.h>
 
 struct TextData {
-    const char* text;
+    char* text;
     Font font;
 
     struct TextData* next;
