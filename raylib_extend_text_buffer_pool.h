@@ -11,6 +11,7 @@
 struct TextData {
     char* text;
     Font font;
+    int fontSize;
 
     struct TextData* next;
 };
