@@ -93,8 +93,11 @@ struct TextData* text_buffer_pool_put(struct TextBufferPool* pool, const char* t
 
     /* if exists, then update it. */
     if (node) {
-        UnloadFont(node->font);
-        text_data_init(pool, node, text, 0, fontSize);
+        if (node->fontSize != fontSize) {
+            UnloadFont(node->font);
+            text_data_init(pool, node, text, 0, fontSize);
+        }
+        
         return node;
     }
     else {
