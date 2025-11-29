@@ -38,8 +38,8 @@ int text_buffer_pool_init(struct TextBufferPool* pool, int bucketSize, const cha
 void text_buffer_pool_destroy(struct TextBufferPool* pool);
 
 /*
-    build the text data, and return it to you.
-    if the text has been built before, this function would just update it.
+    build the text data, and return it to you (no rehash would happen, so you can use the returned pointer safely).
+    if the text has been built before, and the fontSize is not equal to the given one, this function would update it.
 
     if out of memory, this function return NULL, else return the built data.
 */
