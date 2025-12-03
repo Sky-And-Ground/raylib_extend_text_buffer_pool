@@ -38,8 +38,12 @@ namespace raylib_extend {
 
         struct FontDeleter {
             void operator()(Font* font) const noexcept {
-                if (font && font->texture.id != 0) {
-                    UnloadFont(*font);
+                if (font) {
+                    if (font->texture.id != 0) {
+                        UnloadFont(*font);
+                    } 
+
+                    delete font;
                 }
             }
         };
