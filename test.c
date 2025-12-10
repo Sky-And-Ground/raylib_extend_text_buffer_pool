@@ -30,7 +30,7 @@ int main(void)
         ClearBackground(WHITE);
 
         /* just render the text. */
-        DrawTextEx(text->font, text->text, (Vector2){ 50,50 }, text->fontSize, 5, RED);
+        DrawTextEx(text->font, "文本", (Vector2){ 50,50 }, text->fontSize, 5, RED);
         
         EndDrawing();
     }
