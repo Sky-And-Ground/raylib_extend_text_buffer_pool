@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <memory>
 #include <utility>
+#include <cstdint>
 #include <raylib.h>
 
 namespace raylib_extend {
@@ -95,25 +96,135 @@ namespace raylib_extend {
     };
 
     class TextData {
-        std::string _characters;
+        std::wstring _characters;
         std::unique_ptr<Font, detail::FontDeleter> _font;
         int _fontSize;
+
+        std::string conv_unicode_to_utf8(const std::wstring& wstr) {
+            std::string result;
+
+            for (wchar_t c : wstr) {
+                auto i = static_cast<uint32_t>(c);   // u32string could also work.
+
+                if (i < 0x80) {
+                    result += static_cast<char>(i);
+                }
+                else if (i < 0x800) {
+                    result += static_cast<char>(0xc0 | (i >> 6));
+                    result += static_cast<char>(0x80 | (i & 0x3f));
+                }
+                else if (i < 0x10000) {
+                    result += static_cast<char>(0xe0 | (i >> 12));
+                    result += static_cast<char>(0x80 | ((i >> 6) & 0x3f));
+                    result += static_cast<char>(0x80 | (i & 0x3f));
+                }
+                else if (i < 0x200000) {
+                    result += static_cast<char>(0xf0 | (i >> 18));
+                    result += static_cast<char>(0x80 | ((i >> 12) & 0x3f));
+                    result += static_cast<char>(0x80 | ((i >> 6) & 0x3f));
+                    result += static_cast<char>(0x80 | (i & 0x3f));
+                }
+                else {
+                    result += static_cast<char>(0xf8 | (i >> 24));
+                    result += static_cast<char>(0x80 | ((i >> 18) & 0x3f));
+                    result += static_cast<char>(0x80 | ((i >> 12) & 0x3f));
+                    result += static_cast<char>(0x80 | ((i >> 6) & 0x3f));
+                    result += static_cast<char>(0x80 | (i & 0x3f));
+                }
+            }
+
+            return result;
+        }
+
+        std::wstring conv_utf8_to_unicode(const std::string& str) {
+            std::wstring wstr;
+
+            for (size_t i = 0; i < str.size() ;) {
+                uint32_t codepoint = 0;
+                uint8_t byte = static_cast<uint8_t>(str[i]);
+
+                if ((byte & 0x80) == 0) {
+                    codepoint = byte;
+                    i += 1;
+                }
+                else if ((byte & 0xe0) == 0xc0) {
+                    codepoint = ((byte & 0x1f) << 6) | (static_cast<uint8_t>(str[i + 1]) & 0x3f);
+                    i += 2;
+                }
+                else if ((byte & 0xf0) == 0xe0) {
+                    codepoint = ((byte & 0x0f) << 12) |
+                                ((static_cast<uint8_t>(str[i + 1]) & 0x3f) << 6) |
+                                (static_cast<uint8_t>(str[i + 2]) & 0x3f);
+                    i += 3;
+                }
+                else if ((byte & 0xf8) == 0xf0) {
+                    codepoint = ((byte & 0x07) << 18) |
+                                ((static_cast<uint8_t>(str[i + 1]) & 0x3F) << 12) |
+                                ((static_cast<uint8_t>(str[i + 2]) & 0x3F) << 6) |
+                                (static_cast<uint8_t>(str[i + 3]) & 0x3F);
+                    i += 4;
+                }
+                else {   // invalid, just break.
+                    break;
+                }
+
+                if (codepoint <= 0xFFFF) {
+                    wstr += static_cast<wchar_t>(codepoint);
+                } else {
+                    codepoint -= 0x10000;
+                    wstr += static_cast<wchar_t>((codepoint >> 10) + 0xD800);
+                    wstr += static_cast<wchar_t>((codepoint & 0x3FF) + 0xDC00);
+                }
+            }
+
+            return wstr;
+        }
+
+        void reset(const std::wstring& characters, const FontFileData& ffd) {
+            _characters = characters;
+
+            CodePoints cp{ conv_unicode_to_utf8(_characters) };
+            Font tmpFont = LoadFontFromMemory(".ttf", ffd.get_data(), ffd.get_data_size(), _fontSize, cp.get_data(), cp.get_count());
+            _font.reset(new Font{ tmpFont });
+        }
     public:
+        TextData() 
+            : _characters{ L"" }, _font{ nullptr }, _fontSize{ 32 }
+        {}
+
         TextData(const std::string& characters, const FontFileData& ffd) 
-            : _characters{ "" }, _font{ nullptr }, _fontSize{ 32 }
+            : _characters{ conv_utf8_to_unicode(characters) }, _font{ nullptr }, _fontSize{ 32 }
         {
             reset(characters, ffd);
         }
 
         void reset(const std::string& characters, const FontFileData& ffd) {
-            _characters = characters;
+            _characters = conv_utf8_to_unicode(characters);
 
-            CodePoints cp{ _characters };
+            CodePoints cp{ characters };
             Font tmpFont = LoadFontFromMemory(".ttf", ffd.get_data(), ffd.get_data_size(), _fontSize, cp.get_data(), cp.get_count());
             _font.reset(new Font{ tmpFont });
         }
 
-        const std::string& characters() const noexcept {
+        void add_if_not_exists(const std::string& others, const FontFileData& ffd) {
+            bool added = false;
+
+            std::wstring tmpWstr = conv_utf8_to_unicode(others);
+
+            for (wchar_t c : tmpWstr) {
+                auto iter = _characters.find(c);
+                if (iter == std::wstring::npos) {
+                    _characters += c;
+                    added = true;
+                }
+            }
+
+            if (added) {
+                reset(_characters, ffd);
+            }
+        }
+
+        const std::wstring& characters() const noexcept {
             return _characters;
         }
 
