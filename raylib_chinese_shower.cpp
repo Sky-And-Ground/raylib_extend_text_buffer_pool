@@ -193,38 +193,32 @@ public:
     }
 };
 
-/*
-    g++ raylib_chinese_shower.cpp -I D:\third-party\raylib-5.5_win64_mingw-w64\raylib-5.5_win64_mingw-w64\include -L D:\third-party\raylib-5.5_win64_mingw-w64\raylib-5.5_win64_mingw-w64\lib -l raylib -lopengl32 -lgdi32 -lwinmm
-*/
-int main() {
-    InitWindow(800, 450, "测试中文显示");
-    SetTargetFPS(60);
-
+void draw_text() {
     // these code must be called after InitWindow.
     raylib_text_render rtr;
 
     if (!rtr.load_font_file(".ttf", "simkai.ttf")) {
         TraceLog(LOG_ERROR, "load font file failed\n");
-        CloseWindow();
-        return -1;
+        return;
     }
 
+    // ascii.
     for (uint32_t i = 32; i < 128; ++i) {
         rtr.add_codepoint(i);
     }
 
+    // Chinese.
     for (uint32_t i = 0x4E00; i <= 0x9FFF; ++i) {
         rtr.add_codepoint(i);
     }
 
     Font font;
-    if (!rtr.render_font(16, font)) {
+    if (!rtr.render_font(32, font)) {
         TraceLog(LOG_ERROR, "render font failed\n");
-        CloseWindow();
-        return -1;
+        return;
     }
 
-    // draw text.
+    // draw something.
     while (!WindowShouldClose()) 
     {
         BeginDrawing();
@@ -232,7 +226,16 @@ int main() {
         DrawTextEx(font, "这是一段文本, 专用于测试", (Vector2){ 50, 50 }, 32, 0, RED);
         EndDrawing();
     }
+}
 
+/*
+    g++ raylib_chinese_shower.cpp -I D:\third-party\raylib-5.5_win64_mingw-w64\raylib-5.5_win64_mingw-w64\include -L D:\third-party\raylib-5.5_win64_mingw-w64\raylib-5.5_win64_mingw-w64\lib -l raylib -lopengl32 -lgdi32 -lwinmm
+*/
+int main() {
+    InitWindow(800, 450, "测试中文显示");
+    SetTargetFPS(60);
+
+    draw_text();
     CloseWindow();
     return 0;
 }
